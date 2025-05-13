@@ -1,7 +1,7 @@
 import SwiftUI
 
 // MARK: - Booking Model
-struct Booking: Identifiable {
+struct Booking: Identifiable, Codable { // Make it Codable to save in UserDefaults
     let id = UUID()
     let date: Date
     let returnDate: Date
@@ -50,6 +50,7 @@ struct BookingDetailView: View {
                     Button(action: {
                         if let index = bookings.firstIndex(where: { $0.id == booking.id }) {
                             bookings.remove(at: index)
+                            saveBookings() // Save after deleting
                         }
                         dismiss() // Go back to the previous screen
                     }) {
@@ -90,6 +91,12 @@ struct BookingDetailView: View {
         let formatter = DateFormatter()
         formatter.dateStyle = .medium
         return formatter.string(from: date)
+    }
+    
+    func saveBookings() {
+        if let encoded = try? JSONEncoder().encode(bookings) {
+            UserDefaults.standard.set(encoded, forKey: "savedBookings")
+        }
     }
 }
 
@@ -142,6 +149,7 @@ struct BookPlanView: View {
                                 ageRange: ageRange
                             )
                             bookings.append(newBooking)
+                            saveBookings() // Save after adding a new booking
                             
                             fromLocation = ""
                             toLocation = ""
@@ -213,6 +221,9 @@ struct BookPlanView: View {
                 .padding(.bottom)
             }
             .background(Color.black.ignoresSafeArea())
+            .onAppear {
+                loadBookings() // Load saved bookings when the view appears
+            }
         }
     }
     
@@ -289,11 +300,25 @@ struct BookPlanView: View {
         formatter.dateStyle = .medium
         return formatter.string(from: date)
     }
+    
+    func saveBookings() {
+        if let encoded = try? JSONEncoder().encode(bookings) {
+            UserDefaults.standard.set(encoded, forKey: "savedBookings")
+        }
+    }
+    
+    func loadBookings() {
+        if let savedData = UserDefaults.standard.data(forKey: "savedBookings"),
+           let decodedBookings = try? JSONDecoder().decode([Booking].self, from: savedData) {
+            bookings = decodedBookings
+        }
+    }
 }
 
 // MARK: - Preview
 #Preview {
     BookPlanView()
 }
+
 
 
